@@ -26,8 +26,9 @@ jobs:
       - name: Build with dotnet
         run: dotnet build --configuration Release
 
-      - name: dotnet publish
-        run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+     # 🏭 Publish for 32-bit Windows (Free tier requirement)
+      - name: Publish
+        run: dotnet publish -c Release -r win-x86 --self-contained false -o ./publish
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -59,7 +60,7 @@ jobs:
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'BookAPI'
+          app-name: 'TestBook'
           slot-name: 'Production'
           package: .
           
