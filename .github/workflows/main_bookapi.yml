@@ -1,3 +1,6 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
 name: Build and deploy ASP.NET Core app to Azure Web App - TestBook
 
 on:
@@ -8,61 +11,71 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
+    permissions:
+      contents: read # Required for checkout
 
     steps:
-      # 🧱 1. Checkout your code
+      # 🧱 Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ⚙️ 2. Setup .NET SDK
+      # ⚙️ Setup .NET SDK
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      # 🔄 3. Restore dependencies
-      - name: Restore
+      # 🔄 Restore dependencies
+      - name: Restore dependencies
         run: dotnet restore
 
-      # 🏗️ 4. Build the project
-      - name: Build
+      # 🏗️ Build project
+      - name: Build with dotnet
         run: dotnet build --configuration Release --no-restore
 
-      # 🏭 5. Publish for 32-bit Windows (Free tier requirement)
+      # 🏭 Publish for 32-bit Windows (Free tier requirement)
       - name: Publish
-        run: dotnet publish -c Release -r win-x86 --self-contained false -o ${{ github.workspace }}/publish
+        run: dotnet publish -c Release -r win-x86 --self-contained false -o ${{ github.workspace }}\publish
 
-      # 🧾 6. Optional: Verify publish output (debug)
+      # 🧾 Optional: List published files (debug)
       - name: List published files
-        run: ls -R ${{ github.workspace }}/publish
+        run: dir ${{ github.workspace }}\publish
 
-      # 📦 7. Upload published folder as artifact
+      # 📦 Upload published folder as artifact for deployment
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: .net-app
-          path: ${{ github.workspace }}/publish/**
+          path: ${{ github.workspace }}\publish\**
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: build
-    environment:
-      name: 'Production'
+    permissions:
+      id-token: write # Required for OIDC login
+      contents: read  # Required for checkout
 
     steps:
-      # 📥 1. Download the build artifact
+      # 📥 Download build artifact
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: .net-app
 
-      # 🚀 2. Deploy to Azure Web App
-      - name: Deploy to Azure WebApp
+      # 🔐 Login to Azure using Federated Identity (OIDC)
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_14AEF848588042E5B07ADF7B8EE1C5D4 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_521CEB440C5C45EC8BFBBEDA9D7950ED }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_AC97EEEA72F5473E8A448ACC0BE584DD }}
+
+      # 🚀 Deploy to Azure Web App
+      - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'TestBook' # 👈 Replace with your actual Azure App Service name
+          app-name: 'TestBook'     # 👈 Your Azure App Service name
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
           package: .
